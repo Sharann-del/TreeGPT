@@ -1,0 +1,7 @@
+# Ensure shell scripts are treated as text and have LF line endings
+*.sh text eol=lf
+
+# Protect sensitive files
+*.key filter=git-crypt diff=git-crypt
+*.pem filter=git-crypt diff=git-crypt
+

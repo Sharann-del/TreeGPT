@@ -1,0 +1,31 @@
+name: Security Check
+
+on:
+  pull_request:
+  push:
+    branches: [ main, master ]
+
+jobs:
+  check-api-keys:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Check for API keys
+        run: |
+          echo "🔍 Checking for accidental API key exposure..."
+          
+          # Check for OpenAI API key pattern
+          if grep -r "sk-[a-zA-Z0-9]\{20,\}" --exclude-dir=node_modules --exclude-dir=.git .; then
+            echo "❌ ERROR: Potential API keys found!"
+            echo "Please remove any API keys before pushing."
+            exit 1
+          fi
+          
+          # Check for common secret patterns
+          if grep -riE "(api[_-]?key|apikey|secret).*=.*['\"].*['\"]" --exclude-dir=node_modules --exclude-dir=.git . | grep -v "//.*api" | grep -v "#.*api"; then
+            echo "⚠️  WARNING: Potential secrets found. Please review."
+          fi
+          
+          echo "✅ No API keys detected"
+

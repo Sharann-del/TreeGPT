@@ -1,0 +1,17 @@
+{
+  "name": "treegpt",
+  "version": "1.0.0",
+  "description": "Hierarchical problem-solving system with tree visualization",
+  "type": "module",
+  "scripts": {
+    "dev": "npm run dev:frontend",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build": "cd frontend && npm run build",
+    "install:all": "npm install && cd frontend && npm install",
+    "security:check": "bash scripts/check-api-keys.sh",
+    "security:setup": "bash scripts/setup-git-hooks.sh"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
