@@ -12,6 +12,7 @@ export interface TreeNode {
     ancestorSummary: string;
     assumptions: string;
     stepNumber?: number;
+    subProblemSide?: 'left' | 'right'; // Track which side sub-problem appears on
   };
   createdAt: number;
   updatedAt: number;

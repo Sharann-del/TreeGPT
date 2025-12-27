@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { TreeNode, TreeState, NodeStatus } from './types';
+import { TreeNode, TreeState } from './types';
 import { v4 as uuidv4 } from 'uuid';
 
 interface AppState extends TreeState {
@@ -11,7 +11,7 @@ interface AppState extends TreeState {
   deleteNode: (id: string) => void;
   setSelectedNode: (id: string | null) => void;
   createRoot: (problem: string) => string;
-  createSubProblem: (parentId: string, problem: string) => string;
+  createSubProblem: (parentId: string, problem: string, side?: 'left' | 'right') => string;
   getNode: (id: string) => TreeNode | undefined;
   getAncestors: (id: string) => TreeNode[];
   getDescendants: (id: string) => string[];
@@ -41,7 +41,7 @@ export const useStore = create<AppState>((set, get) => ({
   addNode: (node) => {
     const nodes = new Map(get().nodes);
     nodes.set(node.id, node);
-    
+
     // Update parent's children array
     if (node.parentId) {
       const parent = nodes.get(node.parentId);
@@ -54,7 +54,7 @@ export const useStore = create<AppState>((set, get) => ({
         nodes.set(node.parentId, updatedParent);
       }
     }
-    
+
     set({ nodes });
   },
 
@@ -70,13 +70,13 @@ export const useStore = create<AppState>((set, get) => ({
   deleteNode: (id) => {
     const nodes = new Map(get().nodes);
     const node = nodes.get(id);
-    
+
     if (!node) return;
-    
+
     // Recursively delete children
     const descendants = get().getDescendants(id);
     descendants.forEach(descId => nodes.delete(descId));
-    
+
     // Remove from parent's children
     if (node.parentId) {
       const parent = nodes.get(node.parentId);
@@ -89,14 +89,14 @@ export const useStore = create<AppState>((set, get) => ({
         nodes.set(node.parentId, updatedParent);
       }
     }
-    
+
     nodes.delete(id);
-    
+
     // Clear root if deleting root
     if (get().rootId === id) {
       set({ rootId: null, selectedNodeId: null });
     }
-    
+
     set({ nodes });
   },
 
@@ -104,10 +104,35 @@ export const useStore = create<AppState>((set, get) => ({
 
   createRoot: (problem) => {
     const id = uuidv4();
+    
+    // Generate a title from the problem text (first sentence or first 50 chars)
+    const generateTitle = (text: string): string => {
+      // Remove markdown formatting
+      let cleanText = text
+        .replace(/^#{1,6}\s+/gm, '')
+        .replace(/\*\*/g, '')
+        .replace(/\*/g, '')
+        .replace(/`/g, '')
+        .trim();
+      
+      // Take first sentence or first 50 chars
+      const firstSentence = cleanText.split(/[.!?]/)[0].trim();
+      if (firstSentence.length > 0 && firstSentence.length <= 60) {
+        return firstSentence;
+      } else {
+        const title = cleanText.substring(0, 50).trim();
+        const lastSpace = title.lastIndexOf(' ');
+        if (lastSpace > 30) {
+          return title.substring(0, lastSpace) + '...';
+        }
+        return title || 'New Problem';
+      }
+    };
+    
     const root: TreeNode = {
       id,
       parentId: null,
-      title: 'Root Problem',
+      title: generateTitle(problem),
       problem,
       solution: '',
       status: 'open',
@@ -119,22 +144,22 @@ export const useStore = create<AppState>((set, get) => ({
       createdAt: Date.now(),
       updatedAt: Date.now()
     };
-    
+
     get().addNode(root);
     set({ rootId: id, selectedNodeId: id });
     return id;
   },
 
-  createSubProblem: (parentId, problem) => {
+  createSubProblem: (parentId, problem, side?: 'left' | 'right') => {
     const parent = get().getNode(parentId);
     if (!parent) throw new Error('Parent node not found');
-    
+
     const id = uuidv4();
     const ancestors = get().getAncestors(parentId);
     const ancestorSummary = ancestors
       .map(a => `${a.title}: ${a.problem}`)
       .join('\n');
-    
+
     const subProblem: TreeNode = {
       id,
       parentId,
@@ -145,12 +170,13 @@ export const useStore = create<AppState>((set, get) => ({
       children: [],
       context: {
         ancestorSummary: `${ancestorSummary}\n${parent.title}: ${parent.problem}`,
-        assumptions: parent.context.assumptions
+        assumptions: parent.context.assumptions,
+        subProblemSide: side || 'right' // Default to right
       },
       createdAt: Date.now(),
       updatedAt: Date.now()
     };
-    
+
     get().addNode(subProblem);
     set({ selectedNodeId: id });
     return id;
@@ -162,11 +188,11 @@ export const useStore = create<AppState>((set, get) => ({
     const ancestors: TreeNode[] = [];
     const nodes = get().nodes;
     let currentId: string | null = id;
-    
+
     while (currentId) {
       const node = nodes.get(currentId);
       if (!node) break;
-      
+
       if (node.parentId) {
         ancestors.unshift(node);
         currentId = node.parentId;
@@ -174,7 +200,7 @@ export const useStore = create<AppState>((set, get) => ({
         break;
       }
     }
-    
+
     return ancestors;
   },
 
@@ -182,7 +208,7 @@ export const useStore = create<AppState>((set, get) => ({
     const descendants: string[] = [];
     const node = get().nodes.get(id);
     if (!node) return descendants;
-    
+
     const collect = (nodeId: string) => {
       const n = get().nodes.get(nodeId);
       if (!n) return;
@@ -191,7 +217,7 @@ export const useStore = create<AppState>((set, get) => ({
         collect(childId);
       });
     };
-    
+
     collect(id);
     return descendants;
   },
@@ -212,7 +238,7 @@ export const useStore = create<AppState>((set, get) => ({
   importTree: (data) => {
     try {
       const parsed = JSON.parse(data);
-      const nodes = new Map(parsed.nodes);
+      const nodes = new Map(parsed.nodes) as Map<string, TreeNode>;
       set({
         nodes,
         rootId: parsed.rootId,

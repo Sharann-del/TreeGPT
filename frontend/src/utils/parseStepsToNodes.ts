@@ -50,11 +50,12 @@ export function parseStepsFromSolution(solution: string): ParsedStep[] {
         .join('\n')
         .trim();
       
-      // Clean up markdown artifacts
+      // Clean up markdown artifacts - remove all markdown header markers
       stepContent = stepContent
-        .replace(/^###+\s*$/gm, '') // Remove standalone markdown headers
-        .replace(/^###+\s+/gm, '') // Remove markdown headers at start of lines
-        .replace(/^#+\s*$/gm, '') // Remove standalone # markers
+        .replace(/^#{1,6}\s*$/gm, '') // Remove standalone markdown headers (any number of #)
+        .replace(/^#{1,6}\s+/gm, '') // Remove markdown headers at start of lines (any number of #)
+        .replace(/\s+#{1,6}\s*$/gm, '') // Remove markdown headers at end of lines
+        .replace(/#{3,}/g, '') // Remove any sequence of 3+ # characters anywhere
         .replace(/\n{3,}/g, '\n\n') // Replace multiple newlines with double newline
         .trim();
       

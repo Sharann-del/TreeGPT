@@ -1,92 +1,81 @@
-import React from 'react';
+import { useMemo } from 'react';
 import { useStore } from '../store';
 import { TreeNode } from '../types';
+import { cn } from '../utils/cn';
+import { Circle, Clock, CheckCircle2, Sparkles } from 'lucide-react';
 
 export default function TreeList() {
   const nodes = useStore(state => state.nodes);
   const rootId = useStore(state => state.rootId);
   const selectedNodeId = useStore(state => state.selectedNodeId);
-  const setSelectedNode = useStore(state => state.setSelectedNode);
+  const setSelected = useStore(state => state.setSelectedNode);
 
-  const buildTreeList = (nodeId: string, level: number = 0): React.ReactNode => {
-    const node = nodes.get(nodeId);
-    if (!node) return null;
+  const flatList = useMemo(() => {
+    if (!rootId) return [];
 
-    const isSelected = selectedNodeId === nodeId;
-    const hasChildren = node.children.length > 0;
+    const list: { node: TreeNode; depth: number }[] = [];
+    const visited = new Set<string>();
 
-    return (
-      <div key={nodeId} className="select-none">
-        <div
-          className={`group flex items-center gap-2 px-3 py-2.5 rounded-lg mb-1 cursor-pointer transition-all duration-200 ${
-            isSelected
-              ? 'bg-gradient-to-r from-cyan-400/15 to-blue-400/10 border border-cyan-400/40 shadow-lg shadow-cyan-400/10'
-              : 'hover:bg-gradient-to-r hover:from-cyan-400/5 hover:to-blue-400/5 border border-transparent hover:border-cyan-400/20'
-          }`}
-          onClick={() => setSelectedNode(nodeId)}
-          style={{ paddingLeft: `${12 + level * 16}px` }}
-        >
-          <div className={`w-1.5 h-1.5 rounded-full transition-all duration-200 ${
-            isSelected ? 'bg-cyan-400 shadow-sm shadow-cyan-400/50' : 'bg-white/30 group-hover:bg-cyan-400/60'
-          }`} />
-          
-          <div className="flex-1 min-w-0">
-            <div className={`text-sm font-medium truncate transition-colors ${
-              isSelected ? 'text-white' : 'text-white/70 group-hover:text-white/90'
-            }`}>
-              {node.title}
-            </div>
-            <div className={`text-xs truncate mt-0.5 ${
-              isSelected ? 'text-white/60' : 'text-white/40 group-hover:text-white/50'
-            }`}>
-              {node.problem.substring(0, 50)}...
-            </div>
-          </div>
+    const traverse = (nodeId: string, depth: number) => {
+      if (visited.has(nodeId)) return;
+      visited.add(nodeId);
 
-          {hasChildren && (
-            <div className={`text-xs px-2 py-0.5 rounded-full transition-all ${
-              isSelected ? 'bg-cyan-400/20 text-cyan-200 border border-cyan-400/30' : 'bg-white/10 text-white/50 group-hover:bg-cyan-400/15 group-hover:text-cyan-300'
-            }`}>
-              {node.children.length}
-            </div>
-          )}
+      const node = nodes.get(nodeId);
+      if (!node) return;
 
-          <div className={`w-1 h-6 rounded-full transition-all ${
-            isSelected ? 'bg-gradient-to-b from-cyan-400/60 to-blue-400/40' : 'bg-transparent group-hover:bg-cyan-400/20'
-          }`} />
-        </div>
+      list.push({ node, depth });
 
-        {hasChildren && (
-          <div className="ml-2 border-l border-cyan-400/20">
-            {node.children.map(childId => buildTreeList(childId, level + 1))}
-          </div>
-        )}
-      </div>
-    );
-  };
+      node.children.forEach(childId => traverse(childId, depth + 1));
+    };
+
+    traverse(rootId, 0);
+    return list;
+  }, [nodes, rootId]);
 
   if (!rootId) {
     return (
-      <div className="h-full flex items-center justify-center p-6">
-        <div className="text-center">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-cyan-400/10 to-blue-400/5 border border-cyan-400/30 flex items-center justify-center mb-4 mx-auto backdrop-blur-sm">
-            <div className="w-8 h-8 border-2 border-cyan-400/40 border-t-cyan-300 rounded-full animate-spin" />
-          </div>
-          <p className="text-cyan-300/60 text-sm">No problem tree yet</p>
-        </div>
+      <div className="flex items-center justify-center h-40 text-white/20 text-sm">
+        No items
       </div>
     );
   }
 
+  const statusIcons = {
+    open: Circle,
+    solving: Clock,
+    solved: CheckCircle2,
+    revised: Sparkles
+  };
+
   return (
-    <div className="h-full overflow-y-auto p-4">
-      <div className="mb-4">
-        <h2 className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3 px-2">
-          Problem Tree
-        </h2>
-        {buildTreeList(rootId)}
-      </div>
+    <div className="space-y-0.5">
+      {flatList.map(({ node, depth }) => {
+        const StatusIcon = statusIcons[node.status];
+        const isSelected = selectedNodeId === node.id;
+
+        return (
+          <div
+            key={node.id}
+            onClick={() => setSelected(node.id)}
+            className={cn(
+              "flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-all text-sm group",
+              isSelected
+                ? "bg-white/10 text-white shadow-sm"
+                : "text-white/50 hover:bg-white/5 hover:text-white/80"
+            )}
+            style={{ paddingLeft: `${depth * 12 + 12}px` }}
+          >
+            <StatusIcon className={cn(
+              "w-3.5 h-3.5 shrink-0 transition-colors",
+              isSelected ? "text-white" : "text-white/40 group-hover:text-white/60",
+              node.status === 'solving' && "animate-pulse text-blue-400",
+              node.status === 'solved' && "text-emerald-400",
+              node.status === 'revised' && "text-purple-400"
+            )} />
+            <span className="truncate">{node.title}</span>
+          </div>
+        );
+      })}
     </div>
   );
 }
-

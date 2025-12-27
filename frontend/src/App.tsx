@@ -1,32 +1,30 @@
-import React from 'react';
-import Header from './components/Header';
-import TreeList from './components/TreeList';
-import TreeView from './components/TreeView';
-import NodeInspector from './components/NodeInspector';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { ToastProvider } from './utils/toast';
+import DashboardPage from './pages/DashboardPage';
+import WorkspacePage from './pages/WorkspacePage';
+import SettingsPage from './pages/SettingsPage';
+import HelpPage from './pages/HelpPage';
+import AboutPage from './pages/AboutPage';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 function App() {
   return (
-    <div className="h-screen flex flex-col bg-black overflow-hidden">
-      <Header />
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left: Tree List */}
-        <div className="w-64 border-r border-white/10 bg-black/50 backdrop-blur-sm">
-          <TreeList />
-        </div>
-        
-        {/* Center: Tree View */}
-        <div className="flex-1 border-r border-white/10 relative">
-          <TreeView />
-        </div>
-        
-        {/* Right: Chat View */}
-        <div className="w-96 bg-black/30 backdrop-blur-sm">
-          <NodeInspector />
-        </div>
-      </div>
-    </div>
+    <ErrorBoundary>
+      <ToastProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<WorkspacePage />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/workspace" element={<WorkspacePage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/help" element={<HelpPage />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </BrowserRouter>
+      </ToastProvider>
+    </ErrorBoundary>
   );
 }
 
 export default App;
-

@@ -1,6 +1,5 @@
 import OpenAI from 'openai';
-import { TreeNode, PromptContext } from '../types';
-import { useStore } from '../store';
+import { PromptContext } from '../types';
 
 export class OpenAIService {
   private client: OpenAI | null = null;
@@ -114,10 +113,20 @@ ${context.currentStep || 'N/A'}
 Sub-problem solution:
 ${subProblemSolution}
 
-Update the parent solution to incorporate the detailed information from the sub-problem solution.
-- Integrate the sub-problem solution into the parent solution
+Carefully analyze the sub-problem solution and determine if there are any changes, improvements, or additional details that should be incorporated into the parent solution.
+
+IMPORTANT: Only update the parent solution if the sub-problem solution provides:
+- More detailed or accurate information
+- Important clarifications or corrections
+- Additional steps or considerations that enhance the parent solution
+
+If the sub-problem solution doesn't add meaningful value or changes to the parent solution, you may keep the original parent solution mostly unchanged, but still review it for any minor improvements.
+
+When updating:
+- Integrate the sub-problem solution intelligently into the parent solution
 - Maintain clarity and coherence
-- Provide a complete, updated solution
+- Ensure the updated solution is complete and comprehensive
+- Only make changes where the sub-problem solution provides clear improvements
 
 Updated solution:`;
 
